@@ -1,11 +1,11 @@
 import tkinter as tk
-from tkinter import ttk
+from components.manage import Manage
 from PIL import Image, ImageTk
 import pygame
 import os
 
 class Player(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, db):
         super().__init__(parent, bg="#282828", height=100)
         pygame.mixer.init()
 
@@ -14,6 +14,8 @@ class Player(tk.Frame):
         self.song_length = 0
         self.current_time = 0
         self.image_label = None
+        self.current_song = None
+        self.db = db
 
         self.album_cover = tk.Label(self, bg="#282828")
         self.album_cover.pack(side="left", padx=(10, 20))
@@ -36,6 +38,10 @@ class Player(tk.Frame):
                                   activebackground="#1DB954", activeforeground="white", command=self.next_song)
         self.next_btn.pack(side="left", padx=10)
 
+        self.add_btn = tk.Button(control_frame, text="➕", font=("Arial", 14), bg="#282828", fg="white", bd=0,
+                                  activebackground="#1DB954", activeforeground="white", command=self.add_song)
+        self.add_btn.pack(side="left", padx=10)
+
         self.volume_slider = tk.Scale(self, from_=0, to=100, orient="horizontal", bg="#282828", fg="white",
                                       troughcolor="#1DB954", highlightthickness=0, command=self.set_volume, length=100)
         self.volume_slider.set(50)
@@ -55,6 +61,7 @@ class Player(tk.Frame):
         self.song_length_label.pack(side="left", padx=(0, 50), pady=(19, 19))
 
     def play_song(self, song):
+        self.current_song = song
         if os.path.exists(song["source"]):
             self.current_song_path = song["source"]
             pygame.mixer.music.load(song["source"])
@@ -110,7 +117,7 @@ class Player(tk.Frame):
     def seek_song(self, position):
         if self.current_song_path and self.song_length > 0:
             new_time = int((self.progress.get() / 100) * self.song_length)
-            pygame.mixer.music.rewind() 
+            pygame.mixer.music.rewind()
             pygame.mixer.music.set_pos(new_time)
             self.current_time = new_time
             self.current_time_label.config(text=self.format_time(new_time))
@@ -123,6 +130,12 @@ class Player(tk.Frame):
 
     def next_song(self):
         print("Next song")
+
+    def add_song(self):
+        if not self.current_song_path:
+            return
+        
+        Manage(self, self.db, self.current_song)
 
     def format_time(self, seconds):
         minutes = int(seconds // 60)
