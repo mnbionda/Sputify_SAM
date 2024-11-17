@@ -18,7 +18,6 @@ class HomeView(tk.Frame):
         mask = Image.new("L", size, 0)
         draw = ImageDraw.Draw(mask)
         draw.rounded_rectangle((0, 0) + size, radius, fill=255)
-
         rounded_img = Image.new("RGBA", size)
         rounded_img.paste(img, (0, 0), mask)
 
@@ -60,9 +59,20 @@ class HomeView(tk.Frame):
             song_card.image = song_image
 
             song_card.create_text(75, 130, text=song["titulo"], fill="black", font=("Arial", 12, "bold"), anchor="center")
-            song_card.bind("<Button-1>", lambda e, s=song: self.player.play_song(s["source"]))
+            song_card.bind("<Button-1>", lambda e, s=song: self.player.play_song(s))
 
-            
+    def create_rounded_color_card(self, color, size=(150, 150), radius=10):
+        img = Image.new("RGBA", size, color)
+
+        mask = Image.new("L", size, 0)
+        draw = ImageDraw.Draw(mask)
+        draw.rounded_rectangle((0, 0) + size, radius, fill=255)
+
+        rounded_img = Image.new("RGBA", size)
+        rounded_img.paste(img, (0, 0), mask)
+
+        return ImageTk.PhotoImage(rounded_img)
+
     def display_genres(self):
         genres = self.db.get_genero()
         section_label = tk.Label(self, text="Genres", bg="#121212", fg="#b3b3b3", font=("Arial", 16, "bold"))
@@ -75,8 +85,13 @@ class HomeView(tk.Frame):
 
         for i, genre in enumerate(genres):
             color = random.choice(colors)
-            genre_card = tk.Canvas(genre_frame, width=150, height=150, bg=color, highlightthickness=0)
+            genre_image = self.create_rounded_color_card(color)
+
+            genre_card = tk.Canvas(genre_frame, width=150, height=150, highlightthickness=0, bg="#121212")
             genre_card.pack(side="left", padx=10, pady=10)
+
+            genre_card.create_image(0, 0, anchor="nw", image=genre_image)
+            genre_card.image = genre_image
 
             genre_card.create_text(75, 75, text=genre["nombre"], fill="black", font=("Arial", 12, "bold"), anchor="center")
             genre_card.bind("<Button-1>", lambda e, g=genre: self.app.change_view("GenrePage", g))
