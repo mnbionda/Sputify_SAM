@@ -31,7 +31,7 @@ class DBConnection:
         self.cursor.execute(query_user, (name, email, password))
         nuevo_usuario_id = self.cursor.lastrowid 
 
-        query_playlist = "INSERT INTO playlist (titulo, usuario_id) VALUES ('Favoritas', %s)"
+        query_playlist = "INSERT INTO playlist (titulo, id_usuario) VALUES ('Favoritas', %s)"
         self.cursor.execute(query_playlist, (nuevo_usuario_id,))
         nueva_playlist_id = self.cursor.lastrowid
 
@@ -194,3 +194,14 @@ class DBConnection:
         self.cursor.execute(query, (titulo, user_id))
         self.db_conexion.commit()
         return self.cursor.lastrowid
+    
+    def eliminar_playlist(self, playlist_id):
+        query = "DELETE FROM usuario_sigue_playlist WHERE playlist_id = %s"
+        self.cursor.execute(query, (playlist_id,))
+
+        query = "DELETE FROM cancion_dentro_playlist WHERE playlist_id = %s"
+        self.cursor.execute(query, (playlist_id,))
+        
+        query = "DELETE FROM playlist WHERE playlist_id = %s"
+        self.cursor.execute(query, (playlist_id,))
+        self.db_conexion.commit()
