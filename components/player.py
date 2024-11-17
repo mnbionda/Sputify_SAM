@@ -5,7 +5,7 @@ import pygame
 import os
 
 class Player(tk.Frame):
-    def __init__(self, parent, db):
+    def __init__(self, parent, db, user):
         super().__init__(parent, bg="#282828", height=100)
         pygame.mixer.init()
 
@@ -16,6 +16,9 @@ class Player(tk.Frame):
         self.image_label = None
         self.current_song = None
         self.db = db
+        self.user = user
+        self.songs = []
+        self.current_song_index = 0
 
         self.album_cover = tk.Label(self, bg="#282828")
         self.album_cover.pack(side="left", padx=(10, 20))
@@ -60,8 +63,11 @@ class Player(tk.Frame):
         self.song_length_label = tk.Label(self.progress_frame, text="0:00", bg="#282828", fg="white", font=("Arial", 10))
         self.song_length_label.pack(side="left", padx=(0, 50), pady=(19, 19))
 
-    def play_song(self, song):
+    def play_song(self, song, songs):
         self.current_song = song
+        self.songs = songs
+        self.current_song_index = songs.index(song)
+
         if os.path.exists(song["source"]):
             self.current_song_path = song["source"]
             pygame.mixer.music.load(song["source"])
@@ -113,6 +119,7 @@ class Player(tk.Frame):
                 self.play_pause_btn.config(text="▶")
                 self.progress.set(0)
                 self.current_time_label.config(text="0:00")
+                self.next_song()
 
     def seek_song(self, position):
         if self.current_song_path and self.song_length > 0:
@@ -126,16 +133,20 @@ class Player(tk.Frame):
         pygame.mixer.music.set_volume(float(volume) / 100)
 
     def prev_song(self):
-        print("Previous song")
+        if self.songs:
+            self.current_song_index = (self.current_song_index - 1) % len(self.songs)
+            self.play_song(self.songs[self.current_song_index], self.songs)
 
     def next_song(self):
-        print("Next song")
+        if self.songs:
+            self.current_song_index = (self.current_song_index + 1) % len(self.songs)
+            self.play_song(self.songs[self.current_song_index], self.songs)
 
     def add_song(self):
         if not self.current_song_path:
             return
         
-        Manage(self, self.db, self.current_song)
+        Manage(self, self.db, self.current_song, self.user["id_usuario"])
 
     def format_time(self, seconds):
         minutes = int(seconds // 60)
