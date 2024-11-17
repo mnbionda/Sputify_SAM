@@ -34,7 +34,7 @@ class SputifyApp(tk.Tk):
 
         for widget in self.winfo_children():
             widget.destroy()
-        self.geometry("1280x700")
+        self.geometry("1280x720")
         self.show_main_app()
 
     def show_main_app(self):
@@ -62,6 +62,11 @@ class SputifyApp(tk.Tk):
             self.last_view_data = data
 
         if self.current_view:
+            try: #Evita que explote todo si pasas de una vista con scroll a una sin
+                canvas = self.current_view.canvas
+                canvas.unbind_all("<MouseWheel>")
+            except AttributeError:
+                pass
             self.current_view.destroy()
 
         if view_name == "Home":
