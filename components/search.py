@@ -2,11 +2,12 @@ import tkinter as tk
 from components.manage import Manage
 
 class Search(tk.Frame):
-    def __init__(self, parent, db, player, app):
+    def __init__(self, parent, db, player, app, user):
         super().__init__(parent, bg="#121212")
         self.db = db
         self.player = player
         self.app = app
+        self.user = user
 
         self.results_frame = tk.Frame(self, bg="#121212")
         self.results_frame.pack(fill="both", expand=True)
@@ -42,13 +43,13 @@ class Search(tk.Frame):
             song_btn = tk.Button(
                     control_frame, text=song["titulo"], bg="#282828", fg="white", font=("Arial", 12), bd=0,
                     activebackground="#1DB954", activeforeground="white",
-                    padx=30, pady=5, relief="flat", command=lambda s=song: self.player.play_song(s)
+                    padx=30, pady=5, relief="flat", command=lambda s=song: self.player.play_song(s, results.get("songs", []))
                 )
             song_btn.pack(side="left", anchor="w")
             button_widgets.append(song_btn)
 
             add_btn = tk.Button(control_frame, text="➕", font=("Arial", 14), bg="#282828", fg="white", bd=0,
-                                activebackground="#1DB954", activeforeground="white", command=lambda s=song: Manage(self, self.db, s))
+                                activebackground="#1DB954", activeforeground="white", command=lambda s=song: Manage(self, self.db, s, self.user))
             add_btn.pack(side="right", anchor="e", padx=(10, 0))
             button_widgets.append(add_btn)
 
@@ -70,3 +71,5 @@ class Search(tk.Frame):
         for song_btn in button_widgets:
             song_btn.bind("<Enter>", lambda e, b=song_btn: b.config(bg="#1DB954"))
             song_btn.bind("<Leave>", lambda e, b=song_btn: b.config(bg="#282828"))
+
+
