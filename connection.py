@@ -27,10 +27,22 @@ class DBConnection:
         return self.cursor.fetchone()
 
     def registrar_usuario(self, name, email, password):
-        query = "INSERT INTO usuario (nombre, mail, pass) VALUES (%s, %s, %s)"
-        self.cursor.execute(query, (name, email, password))
+        query_user = "INSERT INTO usuario (nombre, mail, pass) VALUES (%s, %s, %s)"
+        self.cursor.execute(query_user, (name, email, password))
+        nuevo_usuario_id = self.cursor.lastrowid 
+
+        query_playlist = "INSERT INTO playlist (titulo, usuario_id) VALUES ('Favoritas', %s)"
+        self.cursor.execute(query_playlist, (nuevo_usuario_id,))
+        nueva_playlist_id = self.cursor.lastrowid
+
+        query_update_user = """
+            UPDATE usuario
+            SET favoritas_playlist_id = %s
+            WHERE id_usuario = %s
+        """
+        self.cursor.execute(query_update_user, (nueva_playlist_id, nuevo_usuario_id))
         self.db_conexion.commit()
-        return self.cursor.lastrowid
+        return nuevo_usuario_id
 
     def get_playlists_usuarios(self, user_id):
         query = "SELECT * FROM playlist WHERE id_usuario = %s"
@@ -67,15 +79,6 @@ class DBConnection:
         self.cursor.execute(query, (album_id,))
         return self.cursor.fetchall()
 
-    def get_canciones_artista(self, artist_id):
-        query = """
-            SELECT c.* FROM cancion AS c
-            JOIN cancion_pertenece_artista AS ca ON c.id_cancion = ca.id_cancion
-            WHERE ca.artista_id = %s
-        """
-        self.cursor.execute(query, (artist_id,))
-        return self.cursor.fetchall()
-
     def get_playlists(self):
         query = "SELECT * FROM playlist"
         self.cursor.execute(query)
@@ -100,6 +103,17 @@ class DBConnection:
         self.cursor.execute(query, (playlist_id, song_id))
         self.db_conexion.commit()
 
+    def cancion_en_playlist(self, playlist_id, song_id):
+        query = "SELECT 1 FROM cancion_dentro_playlist WHERE playlist_id = %s AND id_cancion = %s"
+        self.cursor.execute(query, (playlist_id, song_id))
+        result = self.cursor.fetchone()
+        return result is not None
+
+    def sacar_cancion_playlist(self, playlist_id, song_id):
+        query = "DELETE FROM cancion_dentro_playlist WHERE playlist_id = %s and id_cancion = %s"
+        self.cursor.execute(query, (playlist_id, song_id))
+        self.db_conexion.commit()
+
     def get_canciones_favoritas(self, user_id):
         query = """
             SELECT c.* FROM cancion AS c
@@ -109,6 +123,16 @@ class DBConnection:
         """
         self.cursor.execute(query, (user_id,))
         return self.cursor.fetchall()
+    
+    def get_favorita_usuario(self, user_id):
+        query = """
+            SELECT p.* 
+            FROM usuario AS u
+            JOIN playlist AS p ON u.favoritas_playlist_id = p.playlist_id
+            WHERE u.id_usuario = %s
+        """
+        self.cursor.execute(query, (user_id,))
+        return self.cursor.fetchone()
 
     def add_cancion_favoritos(self, user_id, song_id):
         query = "SELECT favoritas_playlist_id FROM usuario WHERE id_usuario = %s"
@@ -142,6 +166,21 @@ class DBConnection:
         self.cursor.execute(query, (user_id,))
         return self.cursor.fetchall()
 
+    def unfollow_playlist(self, user_id, playlist_id):
+        query = """
+            DELETE FROM usuario_sigue_playlist WHERE id_usuario = %s AND playlist_id = %s
+        """
+        self.cursor.execute(query, (user_id, playlist_id))
+        self.db_conexion.commit()
+
+    def usuario_sigue_playlist(self, user_id, playlist_id):
+        query = """
+            SELECT 1 FROM usuario_sigue_playlist WHERE id_usuario = %s AND playlist_id = %s
+        """
+        self.cursor.execute(query, (user_id, playlist_id))
+        result = self.cursor.fetchone()
+        return result is not None
+
     def buscar(self, busqueda):
         resultados = {
             "artists": self.buscar_artistas(busqueda),
@@ -149,3 +188,9 @@ class DBConnection:
             "playlists": self.buscar_playlists_title(busqueda)
         }
         return resultados
+    
+    def crear_playlist(self, titulo, user_id):
+        query = "INSERT INTO playlist (titulo, id_usuario) VALUES (%s, %s)"
+        self.cursor.execute(query, (titulo, user_id))
+        self.db_conexion.commit()
+        return self.cursor.lastrowid
