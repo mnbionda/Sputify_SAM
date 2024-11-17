@@ -1,11 +1,13 @@
 import tkinter as tk
+from components.create import Create
 
 class Sidebar(tk.Frame):
-    def __init__(self, parent, change_view_callback):
+    def __init__(self, parent, change_view_callback, db, user):
         super().__init__(parent, bg="#121212", width=250)
         self.change_view_callback = change_view_callback
         self.current_view_name = "Home"
-
+        self.db = db
+        self.user = user
 
         self.search_var = tk.StringVar() 
 
@@ -46,6 +48,8 @@ class Sidebar(tk.Frame):
     def handle_sidebar_click(self, view_name):
         if view_name == "Search":
             self.show_search_entry()
+        elif view_name == "Create Playlist":
+            Create(self, self.db, self.user["id_usuario"])
         else:
             self.change_view_callback(view_name)
 
