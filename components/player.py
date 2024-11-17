@@ -18,7 +18,8 @@ class Player(tk.Frame):
         self.db = db
         self.user = user
         self.songs = []
-        self.current_song_index = 0
+        self.current_song_index = 0 
+        self.update_task = None
 
         self.album_cover = tk.Label(self, bg="#282828")
         self.album_cover.pack(side="left", padx=(10, 20))
@@ -64,6 +65,7 @@ class Player(tk.Frame):
         self.song_length_label.pack(side="left", padx=(0, 50), pady=(19, 19))
 
     def play_song(self, song, songs):
+        self.stop_update_task()
         self.current_song = song
         self.songs = songs
         self.current_song_index = songs.index(song)
@@ -77,16 +79,22 @@ class Player(tk.Frame):
             self.song_info.config(text=song_title)
 
             self.song_length = pygame.mixer.Sound(song["source"]).get_length()
+            self.progress.config(to=int(self.song_length))
             self.song_length_label.config(text=self.format_time(self.song_length))
             self.current_time = 0
             self.is_playing = True
             self.play_pause_btn.config(text="⏸")
-            self.update_progress()
+            self.after(1000, self.update_progress)
 
             if "imagen" in song and os.path.exists(song["imagen"]):
                 self.load_album_cover(song["imagen"])
             else:
                 self.clear_album_cover()
+
+    def stop_update_task(self):
+        if self.update_task:
+            self.after_cancel(self.update_task)
+            self.update_task = None
 
     def load_album_cover(self, image_path):
         img = Image.open(image_path)
@@ -106,14 +114,15 @@ class Player(tk.Frame):
             pygame.mixer.music.unpause()
             self.is_playing = True
             self.play_pause_btn.config(text="⏸")
+            self.update_progress()
 
     def update_progress(self):
         if self.is_playing and self.current_song_path:
             self.current_time += 1
             if self.current_time <= self.song_length:
-                self.progress.set((self.current_time / self.song_length) * 100)
+                self.progress.set(self.current_time)
                 self.current_time_label.config(text=self.format_time(self.current_time))
-                self.after(1000, self.update_progress)
+                self.update_task = self.after(1000, self.update_progress)
             else:
                 self.is_playing = False
                 self.play_pause_btn.config(text="▶")
@@ -123,7 +132,7 @@ class Player(tk.Frame):
 
     def seek_song(self, position):
         if self.current_song_path and self.song_length > 0:
-            new_time = int((self.progress.get() / 100) * self.song_length)
+            new_time = int(self.progress.get())
             pygame.mixer.music.rewind()
             pygame.mixer.music.set_pos(new_time)
             self.current_time = new_time
