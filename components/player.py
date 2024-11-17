@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from PIL import Image, ImageTk
 import pygame
 import os
 
@@ -12,12 +13,16 @@ class Player(tk.Frame):
         self.current_song_path = None
         self.song_length = 0
         self.current_time = 0
+        self.image_label = None
+
+        self.album_cover = tk.Label(self, bg="#282828")
+        self.album_cover.pack(side="left", padx=(10, 20))
 
         self.song_info = tk.Label(self, text="", bg="#282828", fg="white", font=("Arial", 14, "bold"))
         self.song_info.pack(side="left", padx=10)
 
         control_frame = tk.Frame(self, bg="#282828")
-        control_frame.pack(side="left", padx=40)
+        control_frame.pack(side="left", padx=20)
         
         self.prev_btn = tk.Button(control_frame, text="⏮", font=("Arial", 14), bg="#282828", fg="white", bd=0,
                                   activebackground="#1DB954", activeforeground="white", command=self.prev_song)
@@ -33,20 +38,21 @@ class Player(tk.Frame):
 
         self.volume_slider = tk.Scale(self, from_=0, to=100, orient="horizontal", bg="#282828", fg="white",
                                       troughcolor="#1DB954", highlightthickness=0, command=self.set_volume, length=100)
-        self.volume_slider.set(50)  # Default volume
-        self.volume_slider.pack(side="right", padx=20)
+        self.volume_slider.set(50)
+        self.volume_slider.pack(side="right", padx=20, pady=(0, 19))
 
         self.progress_frame = tk.Frame(self, bg="#282828")
         self.progress_frame.pack(side="right", padx=20)
         
         self.current_time_label = tk.Label(self.progress_frame, text="0:00", bg="#282828", fg="white", font=("Arial", 10))
-        self.current_time_label.pack(side="left")
+        self.current_time_label.pack(side="left", pady=(19, 19))
 
-        self.progress = ttk.Progressbar(self.progress_frame, orient="horizontal", length=200, mode="determinate")
-        self.progress.pack(side="left", padx=5)
+        self.progress = tk.Scale(self.progress_frame, from_=0, to=100, orient="horizontal", length=500, bg="#282828",
+                                 troughcolor="#1DB954", highlightthickness=0, command=self.seek_song, fg="#282828")
+        self.progress.pack(side="left", padx=5, pady=(0, 19))
         
         self.song_length_label = tk.Label(self.progress_frame, text="0:00", bg="#282828", fg="white", font=("Arial", 10))
-        self.song_length_label.pack(side="left")
+        self.song_length_label.pack(side="left", padx=(0, 50), pady=(19, 19))
 
     def play_song(self, song):
         if os.path.exists(song["source"]):
@@ -64,6 +70,20 @@ class Player(tk.Frame):
             self.play_pause_btn.config(text="⏸")
             self.update_progress()
 
+            if "imagen" in song and os.path.exists(song["imagen"]):
+                self.load_album_cover(song["imagen"])
+            else:
+                self.clear_album_cover()
+
+    def load_album_cover(self, image_path):
+        img = Image.open(image_path)
+        img = img.resize((50, 50), Image.LANCZOS)
+        self.album_cover_img = ImageTk.PhotoImage(img)
+        self.album_cover.config(image=self.album_cover_img)
+
+    def clear_album_cover(self):
+        self.album_cover.config(image='')
+
     def toggle_play_pause(self):
         if self.is_playing:
             pygame.mixer.music.pause()
@@ -78,14 +98,22 @@ class Player(tk.Frame):
         if self.is_playing and self.current_song_path:
             self.current_time += 1
             if self.current_time <= self.song_length:
-                self.progress["value"] = (self.current_time / self.song_length) * 100
+                self.progress.set((self.current_time / self.song_length) * 100)
                 self.current_time_label.config(text=self.format_time(self.current_time))
                 self.after(1000, self.update_progress)
             else:
                 self.is_playing = False
                 self.play_pause_btn.config(text="▶")
-                self.progress["value"] = 0
+                self.progress.set(0)
                 self.current_time_label.config(text="0:00")
+
+    def seek_song(self, position):
+        if self.current_song_path and self.song_length > 0:
+            new_time = int((self.progress.get() / 100) * self.song_length)
+            pygame.mixer.music.rewind() 
+            pygame.mixer.music.set_pos(new_time)
+            self.current_time = new_time
+            self.current_time_label.config(text=self.format_time(new_time))
 
     def set_volume(self, volume):
         pygame.mixer.music.set_volume(float(volume) / 100)
